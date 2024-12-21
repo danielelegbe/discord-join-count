@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-
-	"github.com/joho/godotenv"
 )
 
 type Config struct {
@@ -18,10 +16,6 @@ type Config struct {
 var ConfigInstance *Config
 
 func GetConfig() *Config {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
 
 	ConfigInstance = &Config{
 		DiscordToken:     os.Getenv("DISCORD_TOKEN"),
@@ -30,7 +24,7 @@ func GetConfig() *Config {
 		UserId:           os.Getenv("USER_ID"),
 	}
 
-	err = verityConfig()
+	err := verityConfig()
 
 	if err != nil {
 		log.Fatal(err)
