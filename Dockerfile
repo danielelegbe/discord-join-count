@@ -9,7 +9,8 @@ RUN go mod download
 # Copy source code
 COPY . .
 
-# Build the binary with static linking
+WORKDIR /app/cmd
+
 RUN CGO_ENABLED=0 GOOS=linux go build -a -ldflags '-extldflags "-static"' -o main .
 
 # Final stage
@@ -19,7 +20,7 @@ FROM scratch
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
 # Copy the binary
-COPY --from=builder /app/main /main
+COPY --from=builder /app/cmd/main /main
 
 # Run the binary
 ENTRYPOINT ["/main"]
