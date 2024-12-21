@@ -1,0 +1,43 @@
+# Version control
+.git
+.gitignore
+
+# Go development
+*.test
+*.out
+.go-version
+__debug_*
+
+# Editor/IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Build artifacts
+bin/
+dist/
+
+# Environment/local files
+.env*
+*.env
+*.db
+*.sqlite
+*.sqlite3
+data/
+
+# Docker files
+Dockerfile
+.dockerignore
+
+# Logs
+*.log
+
+# Documentation
+README.md
+docs/
+*.md
+
+# Temp files
+tmp/
+.tmp/
