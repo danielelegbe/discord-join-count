@@ -37,7 +37,7 @@ func (b *Bot) Run(botToken string) {
 	b.Discord.Open()
 
 	// keep bot running untill there is NO os interruption (ctrl + C)
-	fmt.Println("Bot running....")
+	slog.Info("Bot running....")
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
 

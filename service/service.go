@@ -33,7 +33,6 @@ func (s *Service) CreateLeaderboardScores() (string, error) {
 	headers := []string{"User", "Total Joins", "Total Time"}
 	rows := make([][]string, len(stats))
 	for i, stat := range stats {
-		fmt.Println("stat", stat)
 
 		// Handle nullable values
 		minutes := int64(0)
@@ -41,7 +40,6 @@ func (s *Service) CreateLeaderboardScores() (string, error) {
 			minutes = int64(stat.TotalMinutes.Float64)
 		}
 
-		fmt.Println("minutes", minutes)
 		joins := stat.TotalJoins // COUNT should never return NULL
 
 		rows[i] = []string{

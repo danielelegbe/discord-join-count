@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"log"
+	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
@@ -69,7 +70,7 @@ func main() {
 	scheduler := schedule.New(gocron, ctx, store, b, svc)
 
 	go func() {
-		log.Println("Starting scheduler...")
+		slog.Info("Starting scheduler...")
 		scheduler.Start()
 	}()
 
@@ -78,10 +79,10 @@ func main() {
 	b.Run(config.DiscordToken)
 
 	// Wait for termination signal
-	log.Println("Bot and Scheduler running. Waiting for termination signal...")
+	slog.Info("Bot and Scheduler running. Waiting for termination signal...")
 	<-signalChan
 
-	log.Println("Shutdown signal received. Cleaning up...")
+	slog.Warn("Shutdown signal received. Cleaning up...")
 
 	// Stop the scheduler and close the Discord session
 	scheduler.Stop()
