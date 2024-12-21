@@ -30,7 +30,7 @@ func New(scheduler gocron.Scheduler, ctx context.Context, store *sqlc.Queries, b
 }
 
 func (s *Scheduler) HandleJobs() error {
-	interval := 4 * time.Second
+	interval := 30 * time.Second
 
 	_, err := s.Scheduler.NewJob(
 		gocron.DurationJob(interval),
