@@ -19,7 +19,7 @@ import (
 	"github.com/danielelegbe/discord-join-count/storage"
 	"github.com/go-co-op/gocron/v2"
 	"github.com/joho/godotenv"
-	_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 )
 
 //go:embed schema.sql
@@ -36,13 +36,18 @@ func main() {
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM)
 
-	db, err := sql.Open("sqlite3", "./data/discord.db")
+	// Make sure the data directory exists
+	if _, err := os.Stat("./data"); os.IsNotExist(err) {
+		os.MkdirAll("./data", os.ModePerm)
+	}
 
-	defer db.Close()
-
+	db, err := sql.Open("sqlite", "./data/discord.db")
 	if err != nil {
 		log.Fatalf("Error opening database: %v", err)
 	}
+
+	defer db.Close()
+
 	// Initialize storage
 	store := storage.CreateAndMigrateStore(db, ddl, ctx)
 

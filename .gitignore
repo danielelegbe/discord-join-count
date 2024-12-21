@@ -1,3 +1,4 @@
 discord.db
 tmp
 .env*
+data
