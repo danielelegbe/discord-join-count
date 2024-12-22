@@ -22,6 +22,7 @@ func (q *Queries) DeleteUsers(ctx context.Context) error {
 const getAllTimeStats = `-- name: GetAllTimeStats :many
 ;
 
+
 select
     u.name,
     count(distinct uj.id) as total_joins,
@@ -38,6 +39,7 @@ from users u
 join user_joins uj on u.id = uj.user_id
 group by u.id, u.name
 order by total_minutes desc
+limit 10
 `
 
 type GetAllTimeStatsRow struct {
@@ -69,7 +71,7 @@ func (q *Queries) GetAllTimeStats(ctx context.Context) ([]GetAllTimeStatsRow, er
 	return items, nil
 }
 
-const getTodayTimeSpent = `-- name: GetTodayTimeSpent :many
+const getAllUsersTodayTimeSpent = `-- name: GetAllUsersTodayTimeSpent :many
 ;
 
 select
@@ -89,23 +91,24 @@ join user_joins uj on u.id = uj.user_id
 where uj.joined_at >= date('now', 'start of day') and uj.joined_at <= current_timestamp
 group by u.id
 order by minutes_today desc
+limit 10
 `
 
-type GetTodayTimeSpentRow struct {
+type GetAllUsersTodayTimeSpentRow struct {
 	Name         string
 	JoinsToday   int64
 	MinutesToday sql.NullFloat64
 }
 
-func (q *Queries) GetTodayTimeSpent(ctx context.Context) ([]GetTodayTimeSpentRow, error) {
-	rows, err := q.db.QueryContext(ctx, getTodayTimeSpent)
+func (q *Queries) GetAllUsersTodayTimeSpent(ctx context.Context) ([]GetAllUsersTodayTimeSpentRow, error) {
+	rows, err := q.db.QueryContext(ctx, getAllUsersTodayTimeSpent)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetTodayTimeSpentRow
+	var items []GetAllUsersTodayTimeSpentRow
 	for rows.Next() {
-		var i GetTodayTimeSpentRow
+		var i GetAllUsersTodayTimeSpentRow
 		if err := rows.Scan(&i.Name, &i.JoinsToday, &i.MinutesToday); err != nil {
 			return nil, err
 		}
@@ -118,6 +121,86 @@ func (q *Queries) GetTodayTimeSpent(ctx context.Context) ([]GetTodayTimeSpentRow
 		return nil, err
 	}
 	return items, nil
+}
+
+const getAllUsersWeeklyTimeSpent = `-- name: GetAllUsersWeeklyTimeSpent :many
+with
+    week_start as (
+        -- Get the start of current week (Monday 00:00:00)
+        select
+            datetime(
+                'now',
+                'start of day',
+                '-' || case
+                    strftime('%w', 'now')
+                    when '0'
+                    then '6'  -- If Sunday, go back 6 days
+                    else cast(strftime('%w', 'now') - 1 as text)  -- Otherwise, back to Monday
+                end
+                || ' days'
+            ) as start_date
+    )
+select
+    u.name,
+    count(distinct uj.id) as joins_this_week,
+    sum(
+        cast(
+            (
+                julianday(coalesce(uj.left_at, current_timestamp))
+                - julianday(uj.joined_at)
+            )
+            * 1440 as integer
+        )
+    ) as minutes_this_week
+from users u
+join user_joins uj on u.id = uj.user_id
+cross join week_start
+where uj.joined_at >= week_start.start_date and uj.joined_at <= current_timestamp
+group by u.id
+order by minutes_this_week desc
+limit 10
+`
+
+type GetAllUsersWeeklyTimeSpentRow struct {
+	Name            string
+	JoinsThisWeek   int64
+	MinutesThisWeek sql.NullFloat64
+}
+
+func (q *Queries) GetAllUsersWeeklyTimeSpent(ctx context.Context) ([]GetAllUsersWeeklyTimeSpentRow, error) {
+	rows, err := q.db.QueryContext(ctx, getAllUsersWeeklyTimeSpent)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetAllUsersWeeklyTimeSpentRow
+	for rows.Next() {
+		var i GetAllUsersWeeklyTimeSpentRow
+		if err := rows.Scan(&i.Name, &i.JoinsThisWeek, &i.MinutesThisWeek); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getUser = `-- name: GetUser :one
+select id, name, created_at
+from users
+where users.id = ?
+`
+
+func (q *Queries) GetUser(ctx context.Context, id string) (User, error) {
+	row := q.db.QueryRowContext(ctx, getUser, id)
+	var i User
+	err := row.Scan(&i.ID, &i.Name, &i.CreatedAt)
+	return i, err
 }
 
 const getUserTodayTimeSpent = `-- name: GetUserTodayTimeSpent :one
@@ -157,7 +240,9 @@ func (q *Queries) GetUserTodayTimeSpent(ctx context.Context, id string) (GetUser
 	return i, err
 }
 
-const getUserVoiceStats = `-- name: GetUserVoiceStats :one
+const getUserTotalTimeSpent = `-- name: GetUserTotalTimeSpent :one
+;
+
 select
     u.name,
     count(distinct uj.id) as total_joins,
@@ -177,16 +262,16 @@ where u.id = ?
 group by u.id
 `
 
-type GetUserVoiceStatsRow struct {
+type GetUserTotalTimeSpentRow struct {
 	Name         string
 	TotalJoins   int64
 	TotalMinutes sql.NullFloat64
 	LastJoin     interface{}
 }
 
-func (q *Queries) GetUserVoiceStats(ctx context.Context, id string) (GetUserVoiceStatsRow, error) {
-	row := q.db.QueryRowContext(ctx, getUserVoiceStats, id)
-	var i GetUserVoiceStatsRow
+func (q *Queries) GetUserTotalTimeSpent(ctx context.Context, id string) (GetUserTotalTimeSpentRow, error) {
+	row := q.db.QueryRowContext(ctx, getUserTotalTimeSpent, id)
+	var i GetUserTotalTimeSpentRow
 	err := row.Scan(
 		&i.Name,
 		&i.TotalJoins,
@@ -196,7 +281,7 @@ func (q *Queries) GetUserVoiceStats(ctx context.Context, id string) (GetUserVoic
 	return i, err
 }
 
-const getWeeklyLeaderboard = `-- name: GetWeeklyLeaderboard :many
+const getUserWeeklyTimeSpent = `-- name: GetUserWeeklyTimeSpent :one
 ;
 
 with
@@ -230,39 +315,26 @@ select
 from users u
 join user_joins uj on u.id = uj.user_id
 cross join week_start
-where uj.joined_at >= week_start.start_date and uj.joined_at <= current_timestamp
+where
+    uj.joined_at >= week_start.start_date
+    and uj.joined_at <= current_timestamp
+    and u.id
+    =  -- Added filter for specific user
+    ?
 group by u.id
-order by minutes_this_week desc
-limit 10
 `
 
-type GetWeeklyLeaderboardRow struct {
+type GetUserWeeklyTimeSpentRow struct {
 	Name            string
 	JoinsThisWeek   int64
 	MinutesThisWeek sql.NullFloat64
 }
 
-func (q *Queries) GetWeeklyLeaderboard(ctx context.Context) ([]GetWeeklyLeaderboardRow, error) {
-	rows, err := q.db.QueryContext(ctx, getWeeklyLeaderboard)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []GetWeeklyLeaderboardRow
-	for rows.Next() {
-		var i GetWeeklyLeaderboardRow
-		if err := rows.Scan(&i.Name, &i.JoinsThisWeek, &i.MinutesThisWeek); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
+func (q *Queries) GetUserWeeklyTimeSpent(ctx context.Context, id string) (GetUserWeeklyTimeSpentRow, error) {
+	row := q.db.QueryRowContext(ctx, getUserWeeklyTimeSpent, id)
+	var i GetUserWeeklyTimeSpentRow
+	err := row.Scan(&i.Name, &i.JoinsThisWeek, &i.MinutesThisWeek)
+	return i, err
 }
 
 const insertUserJoin = `-- name: InsertUserJoin :exec
@@ -289,6 +361,8 @@ func (q *Queries) InsertUserJoin(ctx context.Context, arg InsertUserJoinParams) 
 }
 
 const listUsers = `-- name: ListUsers :many
+;
+
 select id, name, created_at
 from users
 order by time_spent_in_minutes desc

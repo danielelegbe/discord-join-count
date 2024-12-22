@@ -30,7 +30,7 @@ func (s *Service) CreateLeaderboardScores() (string, error) {
 		return "", err
 	}
 
-	headers := []string{"User", "Total Joins", "Total Time"}
+	headers := []string{"User", "Total Time", "Total Joins"}
 	rows := make([][]string, len(stats))
 	for i, stat := range stats {
 
@@ -44,8 +44,8 @@ func (s *Service) CreateLeaderboardScores() (string, error) {
 
 		rows[i] = []string{
 			stat.Name,
+			bot.FormatDuration(minutes),
 			fmt.Sprintf("%d", joins),
-			fmt.Sprintf("%dh %dm", minutes/60, minutes%60),
 		}
 
 	}

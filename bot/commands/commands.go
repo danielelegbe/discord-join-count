@@ -3,14 +3,10 @@ package commands
 import "github.com/bwmarrin/discordgo"
 
 var (
-	commands = []*discordgo.ApplicationCommand{
+	Commands = []*discordgo.ApplicationCommand{
 		{
-			Name:        "stats",
+			Name:        "zoomer-stats-individual",
 			Description: "Get your voice channel statistics",
-		},
-		{
-			Name:        "leaderboard",
-			Description: "Show voice channel leaderboard",
 			Options: []*discordgo.ApplicationCommandOption{
 				{
 					Type:        discordgo.ApplicationCommandOptionString,
@@ -26,14 +22,19 @@ var (
 			},
 		},
 		{
-			Name:        "user",
-			Description: "Get stats for a specific user",
+			Name:        "zoomer-stats-all",
+			Description: "Show the voice channel leaderboard",
 			Options: []*discordgo.ApplicationCommandOption{
 				{
-					Type:        discordgo.ApplicationCommandOptionUser,
-					Name:        "user",
-					Description: "The user to get stats for",
+					Type:        discordgo.ApplicationCommandOptionString,
+					Name:        "period",
+					Description: "Time period (today/week/all)",
 					Required:    true,
+					Choices: []*discordgo.ApplicationCommandOptionChoice{
+						{Name: "Today", Value: "today"},
+						{Name: "This Week", Value: "week"},
+						{Name: "All Time", Value: "all"},
+					},
 				},
 			},
 		},

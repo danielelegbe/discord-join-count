@@ -9,6 +9,7 @@ import (
 	"os/signal"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/danielelegbe/discord-join-count/bot/commands"
 	"github.com/danielelegbe/discord-join-count/config"
 	"github.com/danielelegbe/discord-join-count/sqlc"
 )
@@ -30,18 +31,44 @@ func New(discord *discordgo.Session, store *sqlc.Queries, ctx context.Context) *
 }
 
 func (b *Bot) Run(botToken string) {
-	// add a event handler
 	b.Discord.AddHandler(b.HandleChannelJoinLeave)
+	b.Discord.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		if i.Type != discordgo.InteractionApplicationCommand {
+			return
+		}
 
+		// Map command names to their handlers
+		switch i.ApplicationCommandData().Name {
+		case "zoomer-stats-individual":
+			b.getUserStats(s, i)
+		case "zoomer-stats-all":
+			b.getAllUserStats(s, i)
+		}
+	})
 	// open session
 	b.Discord.Open()
 
-	// keep bot running untill there is NO os interruption (ctrl + C)
+	// Register commands
+	registeredCommands, err := b.Discord.ApplicationCommandBulkOverwrite(config.ConfigInstance.AppId, config.ConfigInstance.GuildId, commands.Commands)
+	if err != nil {
+		slog.Error("Error registering commands", "error", err)
+		return
+	}
+
+	// keep bot running until there is NO os interruption (ctrl + C)
 	slog.Info("Bot running....")
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
-
 	<-c
+
+	// Cleanup on shutdown
+	// Optional: remove commands when shutting down
+	for _, cmd := range registeredCommands {
+		err := b.Discord.ApplicationCommandDelete(config.ConfigInstance.AppId, config.ConfigInstance.GuildId, cmd.ID)
+		if err != nil {
+			slog.Error("Error removing command", "command", cmd.Name, "error", err)
+		}
+	}
 }
 
 func (b *Bot) HandleChannelJoinLeave(discord *discordgo.Session, message *discordgo.VoiceStateUpdate) {

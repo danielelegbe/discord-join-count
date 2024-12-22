@@ -3,7 +3,6 @@ package schedule
 import (
 	"context"
 	"log/slog"
-	"time"
 
 	"github.com/danielelegbe/discord-join-count/bot"
 	"github.com/danielelegbe/discord-join-count/config"
@@ -31,13 +30,12 @@ func New(scheduler gocron.Scheduler, ctx context.Context, store *sqlc.Queries, b
 }
 
 func (s *Scheduler) HandleJobs() error {
-	interval := 5 * time.Minute
+	everySunday := "0 21 * * 0"
 
 	_, err := s.Scheduler.NewJob(
-		gocron.DurationJob(interval),
+		gocron.CronJob(everySunday, false),
 		gocron.NewTask(
 			func() {
-
 				service := service.New(s.Bot, s.Store, s.Ctx)
 
 				// userChannel, err := bot.CreateUserChannel(s.Bot.Discord)

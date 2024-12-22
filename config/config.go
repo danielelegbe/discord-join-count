@@ -13,6 +13,8 @@ type Config struct {
 	SPOST_CHANNEL_ID string `env:"SPOST_CHANNEL_ID"`
 	MainChannelId    string `env:"MAIN_CHANNEL_ID"`
 	UserId           string `env:"USER_ID"`
+	AppId            string `env:"APP_ID"`
+	GuildId          string `env:"GUILD_ID"`
 }
 
 var ConfigInstance *Config
@@ -30,6 +32,8 @@ func GetConfig() *Config {
 		SPOST_CHANNEL_ID: os.Getenv("SPOST_CHANNEL_ID"),
 		MainChannelId:    os.Getenv("MAIN_CHANNEL_ID"),
 		UserId:           os.Getenv("USER_ID"),
+		AppId:            os.Getenv("APP_ID"),
+		GuildId:          os.Getenv("GUILD_ID"),
 	}
 
 	err := verityConfig()
