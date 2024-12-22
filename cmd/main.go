@@ -16,7 +16,6 @@ import (
 	"github.com/danielelegbe/discord-join-count/bot"
 	"github.com/danielelegbe/discord-join-count/config"
 	"github.com/danielelegbe/discord-join-count/schedule"
-	"github.com/danielelegbe/discord-join-count/service"
 	"github.com/danielelegbe/discord-join-count/storage"
 	"github.com/go-co-op/gocron/v2"
 	"github.com/joho/godotenv"
@@ -65,9 +64,8 @@ func main() {
 	}
 
 	b := bot.New(discord, store, ctx)
-	svc := service.New(b, store, ctx)
 
-	scheduler := schedule.New(gocron, ctx, store, b, svc)
+	scheduler := schedule.New(gocron, ctx, store, b)
 
 	go func() {
 		slog.Info("Starting scheduler...")

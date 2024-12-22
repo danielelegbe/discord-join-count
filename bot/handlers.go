@@ -1,11 +1,13 @@
 package bot
 
 import (
-	"database/sql"
 	"fmt"
+	"log/slog"
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/danielelegbe/discord-join-count/config"
+	"github.com/danielelegbe/discord-join-count/sqlc"
 )
 
 func (b *Bot) getUserStats(s *discordgo.Session, i *discordgo.InteractionCreate) {
@@ -80,6 +82,7 @@ func (b *Bot) getAllUserStats(s *discordgo.Session, i *discordgo.InteractionCrea
 		for _, user := range users {
 			response.WriteString(fmt.Sprintf("%s - %s\n", user.Name, FormatNullIntDuration(user.MinutesToday)))
 		}
+
 	case "week":
 		users, err := b.store.GetAllUsersWeeklyTimeSpent(b.ctx)
 		checkNilErr(err)
@@ -93,6 +96,7 @@ func (b *Bot) getAllUserStats(s *discordgo.Session, i *discordgo.InteractionCrea
 		for _, user := range users {
 			response.WriteString(fmt.Sprintf("%s - %s\n", user.Name, FormatNullIntDuration(user.MinutesThisWeek)))
 		}
+
 	case "all":
 		users, err := b.store.GetAllTimeStats(b.ctx)
 		checkNilErr(err)
@@ -116,21 +120,6 @@ func (b *Bot) getAllUserStats(s *discordgo.Session, i *discordgo.InteractionCrea
 	})
 }
 
-// FormatNullIntDuration converts duration to a readable string
-func FormatNullIntDuration(minutes sql.NullFloat64) string {
-	// Handle nullable values
-
-	if minutes.Valid {
-		return fmt.Sprintf("%dh %dm", int(minutes.Float64/60), int(minutes.Float64)%60)
-	}
-
-	return "0:00"
-}
-
-func FormatDuration(minutes int64) string {
-	return fmt.Sprintf("%dh %dm", int(minutes/60), int(minutes)%60)
-}
-
 func sendNotFoundResponse(s *discordgo.Session, i *discordgo.InteractionCreate) {
 
 	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
@@ -139,4 +128,72 @@ func sendNotFoundResponse(s *discordgo.Session, i *discordgo.InteractionCreate) 
 			Content: "You haven't spent any time in voice channels yet!",
 		},
 	})
+}
+
+func (b *Bot) HandleChannelJoinLeave(discord *discordgo.Session, message *discordgo.VoiceStateUpdate) {
+	name := message.Member.DisplayName()
+
+	// User has joined the channel
+	if message.BeforeUpdate == nil {
+		slog.Info("joined", "name", name)
+
+		err := b.store.UpsertUser(b.ctx, sqlc.UpsertUserParams{
+			ID:   message.Member.User.ID,
+			Name: name,
+		})
+
+		checkNilErr(err)
+
+		err = b.store.InsertUserJoin(b.ctx, sqlc.InsertUserJoinParams{
+			UserID:    message.Member.User.ID,
+			GuildID:   message.GuildID,
+			ChannelID: message.ChannelID,
+		})
+
+		checkNilErr(err)
+
+		return
+	}
+
+	// User has left the channel
+	if message.BeforeUpdate != nil && message.ChannelID == "" {
+		slog.Info("left", "name", name)
+
+		err := b.store.UpdateUserLeave(b.ctx, message.Member.User.ID)
+		checkNilErr(err)
+	}
+}
+
+func CreateUserChannel(discord *discordgo.Session) (*discordgo.Channel, error) {
+	userChannel, err := discord.UserChannelCreate(config.ConfigInstance.UserId)
+
+	checkNilErr(err)
+
+	return userChannel, nil
+}
+
+func (b *Bot) SendWeeklyLeaderboardScores(channelID string) error {
+	var response strings.Builder
+	users, err := b.store.GetAllUsersWeeklyTimeSpent(b.ctx)
+
+	if err != nil {
+		return err
+	}
+
+	response.WriteString(fmt.Sprint("Zoomerlympics Weekly Leaderboard 🏆\n\n"))
+
+	if len(users) == 0 {
+		response.WriteString("No activity recorded for this week!")
+		return nil
+	}
+
+	for _, user := range users {
+		response.WriteString(fmt.Sprintf("%s - %s - %d session(s)\n", user.Name, FormatNullIntDuration(user.MinutesThisWeek), user.JoinsThisWeek))
+	}
+
+	_, err = b.Discord.ChannelMessageSend(channelID, response.String())
+
+	slog.Info("sending weekly leaderboards")
+
+	return err
 }

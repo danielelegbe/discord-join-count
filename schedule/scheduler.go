@@ -6,7 +6,6 @@ import (
 
 	"github.com/danielelegbe/discord-join-count/bot"
 	"github.com/danielelegbe/discord-join-count/config"
-	"github.com/danielelegbe/discord-join-count/service"
 	"github.com/danielelegbe/discord-join-count/sqlc"
 	"github.com/go-co-op/gocron/v2"
 )
@@ -16,31 +15,25 @@ type Scheduler struct {
 	Ctx       context.Context
 	Store     *sqlc.Queries
 	Bot       *bot.Bot
-	Service   *service.Service
 }
 
-func New(scheduler gocron.Scheduler, ctx context.Context, store *sqlc.Queries, bot *bot.Bot, service *service.Service) *Scheduler {
+func New(scheduler gocron.Scheduler, ctx context.Context, store *sqlc.Queries, bot *bot.Bot) *Scheduler {
 	return &Scheduler{
 		Scheduler: scheduler,
 		Ctx:       ctx,
 		Store:     store,
 		Bot:       bot,
-		Service:   service,
 	}
 }
 
 func (s *Scheduler) HandleJobs() error {
-	everySunday := "0 21 * * 0"
+	everySundayCron := "0 21 * * 0"
 
 	_, err := s.Scheduler.NewJob(
-		gocron.CronJob(everySunday, false),
+		gocron.CronJob(everySundayCron, false),
 		gocron.NewTask(
 			func() {
-				service := service.New(s.Bot, s.Store, s.Ctx)
-
-				// userChannel, err := bot.CreateUserChannel(s.Bot.Discord)
-
-				err := service.SendLeaderboardScores(config.ConfigInstance.SPOST_CHANNEL_ID)
+				err := s.Bot.SendWeeklyLeaderboardScores(config.ConfigInstance.SPOST_CHANNEL_ID)
 
 				if err != nil {
 					slog.Error(err.Error())
