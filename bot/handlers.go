@@ -75,6 +75,8 @@ func (b *Bot) getAllUserStats(s *discordgo.Session, i *discordgo.InteractionCrea
 			return
 		}
 
+		response.WriteString(fmt.Sprintln("Total time spent today:"))
+
 		for _, user := range users {
 			response.WriteString(fmt.Sprintf("%s - %s\n", user.Name, FormatNullIntDuration(user.MinutesToday)))
 		}
@@ -87,6 +89,7 @@ func (b *Bot) getAllUserStats(s *discordgo.Session, i *discordgo.InteractionCrea
 			return
 		}
 
+		response.WriteString(fmt.Sprintln("Total time spent this week:"))
 		for _, user := range users {
 			response.WriteString(fmt.Sprintf("%s - %s\n", user.Name, FormatNullIntDuration(user.MinutesThisWeek)))
 		}
@@ -99,6 +102,7 @@ func (b *Bot) getAllUserStats(s *discordgo.Session, i *discordgo.InteractionCrea
 			return
 		}
 
+		response.WriteString(fmt.Sprintln("Total time spent (all time):"))
 		for _, user := range users {
 			response.WriteString(fmt.Sprintf("%s - %s\n", user.Name, FormatNullIntDuration(user.TotalMinutes)))
 		}
