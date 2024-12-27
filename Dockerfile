@@ -11,8 +11,7 @@ COPY . .
 
 WORKDIR /app/cmd
 
-RUN CGO_ENABLED=0 GOOS=linux go build -a -ldflags '-extldflags "-static"' -o main .
-
+RUN CGO_ENABLED=0 GOOS=linux go build -o main .
 
 # Run the binary
-ENTRYPOINT ["/main"]
+ENTRYPOINT ["/app/cmd/main"]
