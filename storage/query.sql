@@ -1,13 +1,13 @@
 -- name: GetUser :one
-select *
-from users
-where users.id = ?
+SELECT *
+FROM users
+WHERE users.id = ?
 ;
 
 -- name: ListUsers :many
-select *
-from users
-order by time_spent_in_minutes desc
+SELECT *
+FROM users
+ORDER BY time_spent_in_minutes DESC
 ;
 
 -- name: UpsertUser :exec
@@ -18,7 +18,7 @@ ON CONFLICT (id) DO UPDATE SET
 
 
 -- name: DeleteUsers :exec
-delete from users
+DELETE FROM users
 ;
 
 
