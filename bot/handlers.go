@@ -131,7 +131,16 @@ func sendNotFoundResponse(s *discordgo.Session, i *discordgo.InteractionCreate) 
 }
 
 func (b *Bot) HandleChannelJoinLeave(discord *discordgo.Session, message *discordgo.VoiceStateUpdate) {
+	// Don't track bots
+	if message.Member.User.Bot {
+		return
+	}
+
 	name := message.Member.DisplayName()
+
+	if name == "" {
+		name = message.Member.User.Username
+	}
 
 	// User has joined the channel
 	if message.BeforeUpdate == nil {

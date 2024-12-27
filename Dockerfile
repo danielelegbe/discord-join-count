@@ -6,6 +6,8 @@ WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 
+RUN apk --no-cache add sqlite
+
 # Copy source code
 COPY . .
 
