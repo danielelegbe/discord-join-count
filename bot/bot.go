@@ -35,7 +35,6 @@ func (b *Bot) Run(botToken string) {
 			return
 		}
 
-		// Map command names to their handlers
 		switch i.ApplicationCommandData().Name {
 		case "zoomer-stats-individual":
 			b.getUserStats(s, i)
@@ -43,24 +42,20 @@ func (b *Bot) Run(botToken string) {
 			b.getAllUserStats(s, i)
 		}
 	})
-	// open session
+
 	b.Discord.Open()
 
-	// Register commands
 	registeredCommands, err := b.Discord.ApplicationCommandBulkOverwrite(config.ConfigInstance.AppId, config.ConfigInstance.GuildId, commands.Commands)
 	if err != nil {
 		slog.Error("Error registering commands", "error", err)
 		return
 	}
 
-	// keep bot running until there is NO os interruption (ctrl + C)
 	slog.Info("Bot running....")
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
 	<-c
 
-	// Cleanup on shutdown
-	// Optional: remove commands when shutting down
 	for _, cmd := range registeredCommands {
 		err := b.Discord.ApplicationCommandDelete(config.ConfigInstance.AppId, config.ConfigInstance.GuildId, cmd.ID)
 		if err != nil {

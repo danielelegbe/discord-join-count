@@ -6,7 +6,6 @@ import (
 )
 
 func FormatNullIntDuration(minutes sql.NullFloat64) string {
-	// Handle nullable values
 
 	if minutes.Valid {
 		return fmt.Sprintf("%dh %dm", int(minutes.Float64/60), int(minutes.Float64)%60)

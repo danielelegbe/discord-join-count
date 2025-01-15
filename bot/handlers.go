@@ -60,7 +60,6 @@ func (b *Bot) getUserStats(s *discordgo.Session, i *discordgo.InteractionCreate)
 	})
 }
 
-// HandleLeaderboard displays the voice channel leaderboard
 func (b *Bot) getAllUserStats(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	options := i.ApplicationCommandData().Options
 	period := options[0].StringValue()
@@ -131,7 +130,6 @@ func sendNotFoundResponse(s *discordgo.Session, i *discordgo.InteractionCreate) 
 }
 
 func (b *Bot) HandleChannelJoinLeave(discord *discordgo.Session, message *discordgo.VoiceStateUpdate) {
-	// Don't track bots
 	if message.Member.User.Bot {
 		return
 	}
@@ -142,7 +140,6 @@ func (b *Bot) HandleChannelJoinLeave(discord *discordgo.Session, message *discor
 		name = message.Member.User.Username
 	}
 
-	// User has joined the channel
 	if message.BeforeUpdate == nil {
 		slog.Info("joined", "name", name)
 
@@ -164,7 +161,6 @@ func (b *Bot) HandleChannelJoinLeave(discord *discordgo.Session, message *discor
 		return
 	}
 
-	// User has left the channel
 	if message.BeforeUpdate != nil && message.ChannelID == "" {
 		slog.Info("left", "name", name)
 
